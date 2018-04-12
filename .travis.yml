@@ -8,6 +8,8 @@ os:
 
 dist: trusty
 
+cache: ccache
+
 env:
   matrix:
     - BUILD_TYPE=default CURVE=tweetnacl DRAFT=enabled
@@ -55,8 +57,9 @@ matrix:
         - libsodium-dev
         - asciidoc
         - xmlto
-  - env: BUILD_TYPE=default CURVE=libsodium DRAFT=enabled GSSAPI=enabled PGM=enabled NORM=enabled
+  - env: BUILD_TYPE=default CURVE=libsodium DRAFT=enabled GSSAPI=enabled PGM=enabled NORM=enabled TIPC=enabled
     os: linux
+    sudo: required
     addons:
       apt:
         sources:
@@ -82,8 +85,20 @@ matrix:
   - env: BUILD_TYPE=android CURVE=tweetnacl
     os: linux
     dist: trusty
+  - env: BUILD_TYPE=cmake DO_CLANG_FORMAT_CHECK=1 CLANG_FORMAT=/usr/local/clang-5.0.0/bin/clang-format
+    os: linux
+    addons:
+    apt:
+      sources:
+        - llvm-toolchain-trusty-5.0
+      packages:
+        - clang-5.0
+  - env: BUILD_TYPE=default POLLER=poll
+    os: linux
+  - env: BUILD_TYPE=default POLLER=select
+    os: linux
 
-sudo: required
+sudo: false
 
 before_install:
 - if [ $TRAVIS_OS_NAME == "osx" -a $BUILD_TYPE == "android" ] ; then brew update; brew install binutils ; fi

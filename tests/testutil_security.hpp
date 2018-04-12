@@ -47,11 +47,17 @@ void socket_config_null_client (void *server, void *server_secret)
 
 void socket_config_null_server (void *server, void *server_secret)
 {
-    LIBZMQ_UNUSED (server_secret);
-
     int rc = zmq_setsockopt (server, ZMQ_ZAP_DOMAIN, test_zap_domain,
                              strlen (test_zap_domain));
     assert (rc == 0);
+#ifdef ZMQ_ZAP_ENFORCE_DOMAIN
+    int required = server_secret ? *(int *) server_secret : 0;
+    rc =
+      zmq_setsockopt (server, ZMQ_ZAP_ENFORCE_DOMAIN, &required, sizeof (int));
+    assert (rc == 0);
+#else
+    LIBZMQ_UNUSED (server_secret);
+#endif
 }
 
 //  PLAIN specific functions
@@ -117,8 +123,8 @@ void socket_config_curve_server (void *server, void *server_secret)
 
 #ifdef ZMQ_ZAP_ENFORCE_DOMAIN
     int required = 1;
-    rc = zmq_setsockopt (server, ZMQ_ZAP_ENFORCE_DOMAIN, &required,
-            sizeof (int));
+    rc =
+      zmq_setsockopt (server, ZMQ_ZAP_ENFORCE_DOMAIN, &required, sizeof (int));
     assert (rc == 0);
 #endif
 }
@@ -519,7 +525,7 @@ void setup_handshake_socket_monitor (void *ctx,
     *server_mon = zmq_socket (ctx, ZMQ_PAIR);
     assert (*server_mon);
     int linger = 0;
-    rc = zmq_setsockopt (*server_mon, ZMQ_LINGER, &linger, sizeof(linger));
+    rc = zmq_setsockopt (*server_mon, ZMQ_LINGER, &linger, sizeof (linger));
     assert (rc == 0);
 
     //  Connect it to the inproc endpoints so they'll get events
@@ -552,7 +558,7 @@ void setup_context_and_server_side (
     int rc = zmq_bind (*zap_control, "inproc://handler-control");
     assert (rc == 0);
     int linger = 0;
-    rc = zmq_setsockopt (*zap_control, ZMQ_LINGER, &linger, sizeof(linger));
+    rc = zmq_setsockopt (*zap_control, ZMQ_LINGER, &linger, sizeof (linger));
     assert (rc == 0);
 
     if (zap_handler_) {
@@ -568,7 +574,7 @@ void setup_context_and_server_side (
     //  Server socket will accept connections
     *server = zmq_socket (*ctx, ZMQ_DEALER);
     assert (*server);
-    rc = zmq_setsockopt (*server, ZMQ_LINGER, &linger, sizeof(linger));
+    rc = zmq_setsockopt (*server, ZMQ_LINGER, &linger, sizeof (linger));
     assert (rc == 0);
 
     socket_config_ (*server, socket_config_data_);

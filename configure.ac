@@ -41,9 +41,12 @@ AC_SUBST(PACKAGE_VERSION)
 # ZeroMQ version 4.2.1: 6:1:1 (ABI version 5)
 # ZeroMQ version 4.2.2: 6:2:1 (ABI version 5)
 # ZeroMQ version 4.2.3: 6:3:1 (ABI version 5)
+# ZeroMQ version 4.2.4: 6:4:1 (ABI version 5)
+# ZeroMQ version 4.2.5: 6:5:1 (ABI version 5)
+# ZeroMQ version 4.3.1: 6:6:1 (ABI version 5)
 #
 # libzmq -version-info current:revision:age
-LTVER="6:3:1"
+LTVER="6:6:1"
 AC_SUBST(LTVER)
 
 # Take a copy of original flags
@@ -92,19 +95,12 @@ AC_RUN_IFELSE(
         ]],[[
             struct sockaddr_tipc topsrv;
             int sd = socket(AF_TIPC, SOCK_SEQPACKET, 0);
-            if (sd == -EAFNOSUPPORT) {
-                return 1;
-            }
             memset(&topsrv, 0, sizeof(topsrv));
             topsrv.family = AF_TIPC;
             topsrv.addrtype = TIPC_ADDR_NAME;
             topsrv.addr.name.name.type = TIPC_TOP_SRV;
             topsrv.addr.name.name.instance = TIPC_TOP_SRV;
             fcntl(sd, F_SETFL, O_NONBLOCK);
-            if (connect(sd, (struct sockaddr *)&topsrv, sizeof(topsrv)) != 0) {
-                if (errno != EINPROGRESS)
-                    return -1;
-            }
         ]])
     ],
     [libzmq_tipc_support=yes],
@@ -798,6 +794,22 @@ if test "x$enable_libunwind" != "xno"; then
             fi
         ])
 fi
+
+# See if clang-format is in PATH; the result unblocks the relevant recipes
+WITH_CLANG_FORMAT=""
+AS_IF([test x"$CLANG_FORMAT" = x],
+    [AC_PATH_PROG([CLANG_FORMAT], [clang-format], [])],
+    [AC_CHECK_PROG([WITH_CLANG_FORMAT], [$CLANG_FORMAT], [true], [fail])])
+AS_IF([test x"$CLANG_FORMAT" != x && test x"$WITH_CLANG_FORMAT" = x],
+    [AS_IF([test -x "$CLANG_FORMAT"],
+        [WITH_CLANG_FORMAT=true],
+        [AC_CHECK_PROG([WITH_CLANG_FORMAT], [$CLANG_FORMAT], [true], [false])])])
+AS_IF([test "$WITH_CLANG_FORMAT" = fail],
+    [AC_MSG_ERROR([Caller explicitly referenced CLANG_FORMAT=$CLANG_FORMAT which was not found])])
+AM_CONDITIONAL([WITH_CLANG_FORMAT], [$WITH_CLANG_FORMAT])
+
+# unittests will not build without the static libzmq.a
+AM_CONDITIONAL(ENABLE_STATIC, test "x$enable_static" = "xyes")
 
 # Subst LIBZMQ_EXTRA_CFLAGS & CXXFLAGS & LDFLAGS
 AC_SUBST(LIBZMQ_EXTRA_CFLAGS)
