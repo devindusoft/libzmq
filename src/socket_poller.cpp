@@ -31,6 +31,8 @@
 #include "socket_poller.hpp"
 #include "err.hpp"
 
+#include <limits.h>
+
 static bool is_thread_safe (zmq::socket_base_t &socket)
 {
     // do not use getsockopt here, since that would fail during context termination
@@ -137,7 +139,13 @@ int zmq::socket_poller_t::add (socket_base_t *socket_,
         -1
 #endif
     };
-    items.push_back (item);
+    try {
+        items.push_back (item);
+    }
+    catch (const std::bad_alloc &) {
+        errno = ENOMEM;
+        return -1;
+    }
     need_rebuild = true;
 
     return 0;
@@ -162,7 +170,13 @@ int zmq::socket_poller_t::add_fd (fd_t fd_, void *user_data_, short events_)
         -1
 #endif
     };
-    items.push_back (item);
+    try {
+        items.push_back (item);
+    }
+    catch (const std::bad_alloc &) {
+        errno = ENOMEM;
+        return -1;
+    }
     need_rebuild = true;
 
     return 0;
@@ -563,7 +577,8 @@ int zmq::socket_poller_t::wait (zmq::socket_poller_t::event_t *events_,
         else if (timeout_ < 0)
             timeout = -1;
         else
-            timeout = end - now;
+            timeout =
+              static_cast<int> (std::min<uint64_t> (end - now, INT_MAX));
 
         //  Wait for events.
         while (true) {

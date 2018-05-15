@@ -210,7 +210,7 @@ zmq::socket_base_t::socket_base_t (ctx_t *parent_,
     options.socket_id = sid_;
     options.ipv6 = (parent_->get (ZMQ_IPV6) != 0);
     options.linger.store (parent_->get (ZMQ_BLOCKY) ? -1 : 0);
-    options.zero_copy = parent_->get (ZMQ_ZERO_COPY_RECV);
+    options.zero_copy = parent_->get (ZMQ_ZERO_COPY_RECV) != 0;
 
     if (thread_safe) {
         mailbox = new (std::nothrow) mailbox_safe_t (&sync);
@@ -534,7 +534,8 @@ int zmq::socket_base_t::bind (const char *addr_)
 
         paddr->resolved.udp_addr = new (std::nothrow) udp_address_t ();
         alloc_assert (paddr->resolved.udp_addr);
-        rc = paddr->resolved.udp_addr->resolve (address.c_str (), true);
+        rc = paddr->resolved.udp_addr->resolve (address.c_str (), true,
+                                                options.ipv6);
         if (rc != 0) {
             LIBZMQ_DELETE (paddr);
             return -1;
@@ -782,7 +783,7 @@ int zmq::socket_base_t::connect (const char *addr_)
         last_endpoint.assign (addr_);
 
         // remember inproc connections for disconnect
-        inprocs.ZMQ_MAP_INSERT_OR_EMPLACE (addr_, new_pipes[0]);
+        inprocs.ZMQ_MAP_INSERT_OR_EMPLACE (std::string (addr_), new_pipes[0]);
 
         options.connected = true;
         return 0;
@@ -876,7 +877,8 @@ int zmq::socket_base_t::connect (const char *addr_)
 
         paddr->resolved.udp_addr = new (std::nothrow) udp_address_t ();
         alloc_assert (paddr->resolved.udp_addr);
-        rc = paddr->resolved.udp_addr->resolve (address.c_str (), false);
+        rc = paddr->resolved.udp_addr->resolve (address.c_str (), false,
+                                                options.ipv6);
         if (rc != 0) {
             LIBZMQ_DELETE (paddr);
             return -1;
@@ -980,7 +982,7 @@ void zmq::socket_base_t::add_endpoint (const char *addr_,
 {
     //  Activate the session. Make it a child of this socket.
     launch_child (endpoint_);
-    endpoints.ZMQ_MAP_INSERT_OR_EMPLACE (addr_,
+    endpoints.ZMQ_MAP_INSERT_OR_EMPLACE (std::string (addr_),
                                          endpoint_pipe_t (endpoint_, pipe));
 }
 

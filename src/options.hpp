@@ -257,6 +257,9 @@ struct options_t
     // Use of loopback fastpath.
     bool loopback_fastpath;
 
+    //  Loop sent multicast packets to local sockets
+    bool multicast_loop;
+
     // Use zero copy strategy for storing message content when decoding.
     bool zero_copy;
 
@@ -285,11 +288,11 @@ int do_getsockopt (void *const optval_,
 
 int do_setsockopt_int_as_bool_strict (const void *const optval_,
                                       const size_t optvallen_,
-                                      bool *out_value_);
+                                      bool *const out_value_);
 
 int do_setsockopt_int_as_bool_relaxed (const void *const optval_,
                                        const size_t optvallen_,
-                                       bool *out_value_);
+                                       bool *const out_value_);
 }
 
 #endif
